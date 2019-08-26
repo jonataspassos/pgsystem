@@ -42,6 +42,43 @@ class Proposition(models.Model):
     def __str__(self):
         return self.PROPOSITION_TYPE + ((" - "+str(self.proposition_field))if self.proposition_field else ((" - "+ self.desc)if self.desc else ''))
 
+#Questão genérica
+"""Serve para definir a questão"""
+class Question(models.Model):
+    QUESTION_TYPES=[
+        ('CHO','Multiple Choice'),
+        ('TOF','True or False'),
+        ('OPN','Open'),
+        ('SUM','Summation'),
+        ('PRO','Multiple Propositions'),
+        ('GRP','Group'  )
+    ]
+    QUESTION_TYPE = models.CharField(max_length=3,default="GEN",choices = QUESTION_TYPES)
+    test = models.ManyToManyField(Test,related_name="from_test") #A qual teste Pertence
+    statement = models.TextField(default="")#enunciado da questão
+    value = models.FloatField(_('Value'),default=1.0)#valor da questão
+    def __str__(self):
+        return self.QUESTION_TYPE +" - "+ str(self.statement)[:20]
+
+#Para registrar respostas
+class UserResponse(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    test = models.ForeignKey(Test,on_delete=models.CASCADE, blank=True, null=True)
+    question = models.ForeignKey(Question,on_delete=models.CASCADE)
+    response = models.ForeignKey(Proposition,on_delete=models.CASCADE, blank=True, null=True)
+    score = models.FloatField(_("Score"),default=0)
+    def __str__(self):
+        return ((str(self.test)+': ')if self.test else '') + str(self.question)[:20]+('...'if len(str(self.question))>20 else '') +" - "+ str(self.user) + (' - Respondido' if self.response else '')
+
+#Proposições Específicas
+"""
+Quando for necessário criar uma proposição específica, 
+adicione seu model abaixo, adicione uma opção para ela no 
+    PROPOSITION_TYPES da classe genérica e no 
+    PROPOSITION_TYPES deste arquivo, ao final das 
+        classes das proposições específicas
+"""
+
 """Para quando a proposição for um numero inteiro"""
 class IntegerProposition(Proposition):
     PROPOSITION_TYPE = 'INT'
@@ -67,24 +104,15 @@ class GroupProposition(Proposition):
     PROPOSITION_TYPE = 'GRP'
     proposition_field = models.ManyToManyField(Proposition,related_name='group_propositions')
 
-
-#Questão genérica
-"""Serve para definir a questão"""
-class Question(models.Model):
-    QUESTION_TYPES=[
-        ('CHO','Multiple Choice'),
-        ('TOF','True or False'),
-        ('OPN','Open'),
-        ('SUM','Summation'),
-        ('PRO','Multiple Propositions'),
-        ('GRP','Group')
+PROPOSITION_TYPES = [
+        ('INT',IntegerProposition),
+        ('TXT',TextProposition),
+        ('FLT',FloatProposition),
+        ('BOL',BooleanProposition),
+        ('GRP',GroupProposition)
     ]
-    QUESTION_TYPE = models.CharField(max_length=3,default="GEN",choices = QUESTION_TYPES)
-    test = models.ManyToManyField(Test,related_name="from_test") #A qual teste Pertence
-    statement = models.TextField(default="")#enunciado da questão
-    value = models.FloatField(_('Value'),default=1.0)#valor da questão
-    def __str__(self):
-        return self.QUESTION_TYPE +" - "+ str(self.statement)[:20]
+
+#Questões Específicas
 
 """Questão de Multipla Escolha"""
 class MultipleChoiceQuestion(Question):
@@ -121,12 +149,11 @@ class GroupQuestion(Proposition):
     QUESTION_TYPE = 'GRP'
     questions = models.ManyToManyField(Question,related_name='group_questions')
 
-#Para registrar respostas
-class UserResponse(models.Model):
-    user = models.ForeignKey(User,on_delete=models.CASCADE)
-    test = models.ForeignKey(Test,on_delete=models.CASCADE, blank=True, null=True)
-    question = models.ForeignKey(Question,on_delete=models.CASCADE)
-    response = models.ForeignKey(Proposition,on_delete=models.CASCADE, blank=True, null=True)
-    score = models.FloatField(_("Score"),default=0)
-    def __str__(self):
-        return ((str(self.test)+': ')if self.test else '') + str(self.question)[:20]+('...'if len(str(self.question))>20 else '') +" - "+ str(self.user) + (' - Respondido' if self.response else '')
+QUESTION_TYPES=[
+        ('CHO',MultipleChoiceQuestion),
+        ('TOF',TrueOrFalseQuestion),
+        ('OPN',OpenQuestion),
+        ('SUM',SumTypeQuestion),
+        ('PRO',ManyPropositionQuestion),
+        ('GRP',GroupQuestion)
+    ]
