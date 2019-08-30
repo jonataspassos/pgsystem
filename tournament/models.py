@@ -24,7 +24,7 @@ class Proposition(models.Model):
     create = models.DateField(auto_now=True)
     value = models.PositiveIntegerField(_('Value'),default=1)
     def __str__(self):
-        return self.PROPOSITION_TYPE + ((" - "+str(self.proposition_field))if self.proposition_field else ((" - "+ self.desc)if self.desc else ''))
+        return self.PROPOSITION_TYPE + ((" - "+ self.desc)if self.desc else '')+((" - "+str(self.proposition_field))if self.proposition_field else '')
     # def convert(proposition):
     #     for i in PROPOSITION_TYPES:
     #         if proposition.PROPOSITION_TYPE == i[0]:
@@ -93,7 +93,8 @@ class Test(models.Model):
     aplicate = models.DateField(_('Aplication'), blank=True, null=True)
     def __str__(self):
         return self.code + ": " + str(self.desc)[:20]+('...'if len(str(self.desc))>20 else '')
-    def score(self,userResponses):
+    def score(self,user):
+        userResponses = UserResponse.objects.filter(user = user, question__in = self.questions)
         score = 0
         for i in userResponses:
             if i.question in self.questions.all():
@@ -111,13 +112,14 @@ class Tournament(models.Model):
     def questions(self):
         questions = []
         for i in self.tests.all():
-            questions.append(i.questions.all())
+            questions = questions + list(i.questions.all())
         return questions
-    def score(self,userResponses):
+    def score(self,user):
+        userResponses = UserResponse.objects.filter(user = user, question__in = self.questions())
         score = 0
         questions = self.questions()
         for i in userResponses:
-            if i in questions:
+            if i.question in questions:
                 score += i.score()
         return score
             
@@ -246,6 +248,3 @@ QUESTION_TYPES=[
         ('PRO',ManyPropositionQuestion),
         ('GRP',GroupQuestion)
     ]
-
-
-#UTILS FUNCTIONS
